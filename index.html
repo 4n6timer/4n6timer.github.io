@@ -29,6 +29,14 @@
                     <button id="start-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 cursor-pointer">Start</button>
                 </div>
             </div>
+            <div class="mt-4">
+                <select class="bg-white p-2 w-full shortcut-selector">
+                    <option disabled selected>Shortcuts&hellip;</option>
+                    <option data-timer="180" data-grace="0">3 min timer / 0 grace period</option>
+                    <option data-timer="360" data-grace="30">6 min timer / 30 sec grace period</option>
+                  <option data-timer="600" data-grace="30">10 min timer / 30 sec grace period</option>
+                </select>
+            </div>
         </div>
         <div class="flex-none text-white text-3xl hidden" id="stop-controls">
             <button id="stop-button" class="bg-red-500 hover:bg-red-700 text-white font-bold p-4 cursor-pointer w-full">Stop</button>
@@ -36,6 +44,14 @@
         <div class="flex-none text-white text-3xl hidden" id="reset-restart-controls">
             <button id="restart-button" class="bg-green-500 hover:bg-green-700 text-white font-bold p-4 cursor-pointer w-full">Restart</button>
             <button id="reset-button" class="bg-purple-500 hover:bg-purple-700 text-white font-bold p-4 cursor-pointer w-full">Reset</button>
+            <div class="p-2 bg-yellow-500">
+              <select class="bg-yellow-300 text-black p-2 w-full shortcut-selector">
+                  <option disabled selected>Shortcuts&hellip;</option>
+                  <option data-timer="180" data-grace="0">3 min timer / 0 grace period</option>
+                  <option data-timer="360" data-grace="30">6 min timer / 30 sec grace period</option>
+                  <option data-timer="600" data-grace="30">10 min timer / 30 sec grace period</option>
+              </select>
+            </div>
         </div>
         <div class="grow bg-white text-black flex flex-col justify-center items-start p-4 gap-4 text-4xl font-extralight" id="instructions">
             <div>Use the fields below to set the timer and grace period. The grace period can be 0 seconds.</div>
@@ -43,18 +59,18 @@
         </div>
         <div class="grow bg-black text-white flex flex-col justify-center items-center hidden" id="live-display">
             <div class="text-3xl lg:text-8xl font-extralight" id="timer-label">@label</div>
-            <span class="text-8xl lg:text-[16rem] font-mono font-bold" id="timer-value">0:00</span>
-            <div class="text-3xl lg:text-8xl font-thin mt-12" id="timer-elapsed">0:00 elapsed</div>
+            <span class="text-8xl lg:text-[16rem] tabular-nums font-bold" id="timer-value">0:00</span>
+            <div class="text-3xl lg:text-8xl font-thin mt-12 tabular-nums" id="timer-elapsed">0:00 elapsed</div>
         </div>
         <div class="grow bg-black text-white flex flex-col justify-center items-center hidden" id="summary-display">
             <div class="text-3xl lg:text-8xl font-extralight" id="total-label">Total Length:</div>
-            <span class="text-8xl lg:text-[12rem] font-mono font-bold" id="total-value">0:00</span>
-            <span class="text-3xl lg:text-8xl font-mono" id="total-allowed">0:00</span>
+            <span class="text-8xl lg:text-[12rem] tabular-nums font-bold" id="total-value">0:00</span>
+            <span class="text-3xl lg:text-8xl tabular-nums hidden" id="total-allowed">0:00</span>
             <div class="text-3xl lg:text-8xl font-extralight mt-8" id="grace-label">Grace Used:</div>
-            <span class="text-8xl lg:text-[12rem] font-mono font-bold text-orange-500" id="grace-value">0:00</span>
-            <span class="text-3xl lg:text-8xl font-mono text-orange-500" id="grace-allowed">0:00</span>
+            <span class="text-8xl lg:text-[12rem] tabular-nums font-bold text-orange-500" id="grace-value">0:00</span>
+            <span class="text-3xl lg:text-8xl tabular-nums text-orange-500 hidden" id="grace-allowed">0:00</span>
             <div class="text-3xl lg:text-8xl font-extralight mt-8" id="overage-label">Overage:</div>
-            <span class="text-8xl lg:text-[12rem] font-mono font-bold text-red-500" id="overage-value">0:00</span>
+            <span class="text-8xl lg:text-[12rem] tabular-nums font-bold text-red-500" id="overage-value">0:00</span>
         </div>
     </div>
       <script>
@@ -231,6 +247,39 @@
     restartButton.addEventListener('click', startTimer);
     resetButton.addEventListener('click', resetTimer);
 
+    // Shortcut selectors: set timer/grace from option and start
+    const shortcutSelectors = document.querySelectorAll('.shortcut-selector');
+
+    shortcutSelectors.forEach((selectEl) => {
+      selectEl.addEventListener('change', (e) => {
+        const sel = e.target;
+        const opt = sel.selectedOptions[0];
+        if (!opt) return;
+
+        const timerAttr = opt.dataset.timer;
+        const graceAttr = opt.dataset.grace;
+
+        // Ignore placeholder options (no data attributes)
+        if (!timerAttr) return;
+
+        const timerSec = parseInt(timerAttr, 10) || 0;
+        const graceSec = parseInt(graceAttr ?? '0', 10) || 0;
+
+        if (timerSec <= 0) return;
+
+        // Populate the inputs
+        timerMinutesInput.value = Math.floor(timerSec / 60);
+        timerSecondsInput.value = timerSec % 60;
+        graceInput.value = graceSec;
+
+        // Optionally reset the select back to placeholder
+        // sel.selectedIndex = 0;
+
+        // Start the timer using the existing logic
+        startTimer();
+      });
+    });
+
     // Spacebar: start/stop/restart
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
@@ -331,7 +380,7 @@
       if (graceUsedSec > 0) {
         graceLabel.classList.remove('hidden');
         graceValue.classList.remove('hidden');
-        graceAllowed.classList.remove('hidden');
+        //graceAllowed.classList.remove('hidden');
 
         graceValue.textContent = formatSeconds(graceUsedSec);
         graceAllowed.textContent = formatSeconds(graceTotalSec);
@@ -349,7 +398,7 @@
       } else {
         graceLabel.classList.add('hidden');
         graceValue.classList.add('hidden');
-        graceAllowed.classList.add('hidden');
+        //graceAllowed.classList.add('hidden');
 
         const overLimitSec = overAllottedSec;
         if (overLimitSec > 0) {
